@@ -9,3 +9,4 @@
 *.vsix
 
 todo.md
+*.log

@@ -1,7 +1,7 @@
 //! Pattern scans, byte patches and mid-function hooks. Each hook is an `ilhook`
 //! jmp-back hook whose handler reads/writes the captured [`Registers`].
 
-use crate::memory::{patch_bytes, pattern_scan};
+use crate::memory::{patch_bytes, scan_retry as pattern_scan};
 use crate::state::{self, *};
 use core::sync::atomic::Ordering::Relaxed;
 use ilhook::x64::{CallbackOption, HookFlags, HookType, Hooker, JmpBackRoutine, Registers};

@@ -4,7 +4,7 @@
 //! - FPS unlock (debug frame-limiter): 0dm/saucy — <https://github.com/0dm/DS3DebugFPS>
 //! - No-Intro: bladecoding — <https://github.com/bladecoding/DarkSouls3RemoveIntroScreens>
 
-use crate::memory::{pattern_scan, patch_bytes};
+use crate::memory::{patch_bytes, scan_retry as pattern_scan};
 use crate::state::*;
 use core::sync::atomic::Ordering::Relaxed;
 

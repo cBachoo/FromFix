@@ -1,8 +1,8 @@
 [package]
 name = "FromFix"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
-description = "All-in-One Ultrawide / framerate / FOV fix for Sekiro: Shadows Die Twice"
+description = "All-in-One Ultrawide / framerate / FOV fix for FromSoft Games"
 license = "MIT"
 
 # Built as a winmm.dll proxy: it forwards every real winmm export (see winmm.def)

@@ -22,7 +22,7 @@ use windows_sys::Win32::System::Threading::{
     CreateThread, SetThreadPriority, THREAD_PRIORITY_HIGHEST,
 };
 
-const VERSION: &str = "0.1.0";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DLL_PROCESS_ATTACH: u32 = 1;
 
 static THIS_MODULE: AtomicUsize = AtomicUsize::new(0);

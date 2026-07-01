@@ -55,6 +55,28 @@ pub unsafe fn pattern_scan(base: *const u8, sig: &str) -> Option<*mut u8> {
     None
 }
 
+/// Like [`pattern_scan`], but retries until found or ~15s elapse. FromSoftware
+/// DRM decrypts `.text` regions progressively, so a signature can be absent at
+/// the moment our readiness sentinel first matches; polling catches it once that
+/// region is decrypted. Returns `None` only if it never appears (e.g. a genuine
+/// version mismatch).
+pub unsafe fn scan_retry(base: *const u8, sig: &str) -> Option<*mut u8> {
+    use windows_sys::Win32::System::Threading::Sleep;
+    const MAX_MS: u32 = 15_000;
+    const STEP_MS: u32 = 100;
+    let mut waited = 0u32;
+    loop {
+        if let Some(p) = pattern_scan(base, sig) {
+            return Some(p);
+        }
+        if waited >= MAX_MS {
+            return None;
+        }
+        Sleep(STEP_MS);
+        waited += STEP_MS;
+    }
+}
+
 /// Find every occurrence of a literal byte sequence in the image.
 pub unsafe fn find_all(base: *const u8, needle: &[u8]) -> Vec<*mut u8> {
     let size = size_of_image(base);
