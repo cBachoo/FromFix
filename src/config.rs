@@ -44,7 +44,9 @@ pub fn load(path: &str) -> bool {
             .unwrap_or(d)
     };
     let get_f32 = |s: &str, k: &str, d: f32| get(s, k).and_then(|v| v.parse::<f32>().ok()).unwrap_or(d);
+    let get_i32 = |s: &str, k: &str, d: i32| get(s, k).and_then(|v| v.trim().parse::<i32>().ok()).unwrap_or(d);
 
+    // Sekiro
     BORDERLESS.store(get_bool("Borderless Windowed", "Enabled", false), Relaxed);
     UNLOCK_FPS.store(get_bool("Unlock Framerate", "Enabled", false), Relaxed);
     UNLOCK_RES.store(get_bool("Unlock Resolutions", "Enabled", false), Relaxed);
@@ -52,13 +54,25 @@ pub fn load(path: &str) -> bool {
     FIX_HUD.store(get_bool("Fix HUD", "Enabled", false), Relaxed);
     FOV_MULTI.set(get_f32("Gameplay FOV", "Multiplier", 1.0).clamp(0.01, 4.0));
 
+    // Dark Souls III
+    DS3_SKIP_INTRO.store(get_bool("DS3 Skip Intro", "Enabled", true), Relaxed);
+    DS3_UNLOCK_FPS.store(get_bool("DS3 Unlock Framerate", "Enabled", false), Relaxed);
+    DS3_TARGET_FPS.set(get_f32("DS3 Unlock Framerate", "TargetFPS", 60.0).clamp(30.0, 1000.0));
+    DS3_BORDERLESS.store(get_bool("DS3 Borderless", "Enabled", false), Relaxed);
+    DS3_RES_WIDTH.store(get_i32("DS3 Resolution", "Width", 0), Relaxed);
+    DS3_RES_HEIGHT.store(get_i32("DS3 Resolution", "Height", 0), Relaxed);
+
     crate::log!("----------");
-    crate::log!("Config: Borderless Windowed = {}", BORDERLESS.load(Relaxed));
-    crate::log!("Config: Gameplay FOV Multiplier = {}", FOV_MULTI.get());
-    crate::log!("Config: Unlock Framerate = {}", UNLOCK_FPS.load(Relaxed));
-    crate::log!("Config: Unlock Resolutions = {}", UNLOCK_RES.load(Relaxed));
-    crate::log!("Config: Fix Aspect Ratio = {}", FIX_ASPECT.load(Relaxed));
-    crate::log!("Config: Fix HUD = {}", FIX_HUD.load(Relaxed));
+    crate::log!("[Sekiro] Borderless Windowed = {}", BORDERLESS.load(Relaxed));
+    crate::log!("[Sekiro] Gameplay FOV Multiplier = {}", FOV_MULTI.get());
+    crate::log!("[Sekiro] Unlock Framerate = {}", UNLOCK_FPS.load(Relaxed));
+    crate::log!("[Sekiro] Unlock Resolutions = {}", UNLOCK_RES.load(Relaxed));
+    crate::log!("[Sekiro] Fix Aspect Ratio = {}", FIX_ASPECT.load(Relaxed));
+    crate::log!("[Sekiro] Fix HUD = {}", FIX_HUD.load(Relaxed));
+    crate::log!("[DS3] Skip Intro = {}", DS3_SKIP_INTRO.load(Relaxed));
+    crate::log!("[DS3] Unlock Framerate = {} (TargetFPS {})", DS3_UNLOCK_FPS.load(Relaxed), DS3_TARGET_FPS.get());
+    crate::log!("[DS3] Borderless = {}", DS3_BORDERLESS.load(Relaxed));
+    crate::log!("[DS3] Resolution = {}x{}", DS3_RES_WIDTH.load(Relaxed), DS3_RES_HEIGHT.load(Relaxed));
     crate::log!("----------");
 
     true

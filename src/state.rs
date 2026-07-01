@@ -28,13 +28,21 @@ impl AtomicF32 {
     }
 }
 
-// ---- Config (from FromFix.ini) ----
+// ---- Config: Sekiro (from FromFix.ini) ----
 pub static BORDERLESS: AtomicBool = AtomicBool::new(false);
 pub static UNLOCK_FPS: AtomicBool = AtomicBool::new(false);
 pub static UNLOCK_RES: AtomicBool = AtomicBool::new(false);
 pub static FIX_ASPECT: AtomicBool = AtomicBool::new(false);
 pub static FIX_HUD: AtomicBool = AtomicBool::new(false);
 pub static FOV_MULTI: AtomicF32 = AtomicF32::new(1.0);
+
+// ---- Config: Dark Souls III ----
+pub static DS3_SKIP_INTRO: AtomicBool = AtomicBool::new(true);
+pub static DS3_UNLOCK_FPS: AtomicBool = AtomicBool::new(false);
+pub static DS3_TARGET_FPS: AtomicF32 = AtomicF32::new(60.0);
+pub static DS3_BORDERLESS: AtomicBool = AtomicBool::new(false);
+pub static DS3_RES_WIDTH: AtomicI32 = AtomicI32::new(0);
+pub static DS3_RES_HEIGHT: AtomicI32 = AtomicI32::new(0);
 
 // ---- Runtime state ----
 pub static RES_X: AtomicI32 = AtomicI32::new(0);

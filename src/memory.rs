@@ -55,6 +55,50 @@ pub unsafe fn pattern_scan(base: *const u8, sig: &str) -> Option<*mut u8> {
     None
 }
 
+/// Find every occurrence of a literal byte sequence in the image.
+pub unsafe fn find_all(base: *const u8, needle: &[u8]) -> Vec<*mut u8> {
+    let size = size_of_image(base);
+    let n = needle.len();
+    let mut out = Vec::new();
+    if n == 0 || size < n {
+        return out;
+    }
+    let data = core::slice::from_raw_parts(base, size);
+    let mut i = 0;
+    while i + n <= size {
+        if &data[i..i + n] == needle {
+            out.push(base.add(i) as *mut u8);
+            i += n;
+        } else {
+            i += 1;
+        }
+    }
+    out
+}
+
+/// Poll for `sig` until it appears. FromSoftware exes are SteamStub-encrypted;
+/// `.text` is only decrypted once the real entry point runs, which is *after*
+/// statically-imported DLLs (like this winmm proxy) initialise. Returns `true`
+/// once found, `false` on timeout. `label` is used for logging.
+pub unsafe fn wait_for_signature(base: *const u8, sig: &str, label: &str) -> bool {
+    use windows_sys::Win32::System::Threading::Sleep;
+    const TIMEOUT_MS: u32 = 60_000;
+    const STEP_MS: u32 = 250;
+    let mut waited = 0u32;
+    loop {
+        if pattern_scan(base, sig).is_some() {
+            crate::log!("{}: game code decrypted after {} ms.", label, waited);
+            return true;
+        }
+        if waited >= TIMEOUT_MS {
+            crate::log!("{}: WARNING code not ready after {} ms; scanning anyway.", label, waited);
+            return false;
+        }
+        Sleep(STEP_MS);
+        waited += STEP_MS;
+    }
+}
+
 /// Overwrite `bytes.len()` bytes at `addr`, restoring the original protection.
 pub unsafe fn patch_bytes(addr: *mut u8, bytes: &[u8]) {
     let mut old: u32 = 0;

@@ -37,36 +37,22 @@ unsafe fn install_mid(name: &str, base: *const u8, addr: *mut u8, cb: JmpBackRou
 }
 
 /// The CurrentResolution signature, also used as the "code is ready" sentinel.
-const CURRENT_RESOLUTION_SIG: &str = "85 ?? 74 ?? ?? 8B ?? ?? ?? ?? ?? ?? 45 ?? ?? 74 ?? 41 ?? ?? 0F ?? ??";
+pub const READY_SIG: &str = "85 ?? 74 ?? ?? 8B ?? ?? ?? ?? ?? ?? 45 ?? ?? 74 ?? 41 ?? ?? 0F ?? ??";
 
-/// sekiro.exe ships SteamStub-encrypted: `.text` is only decrypted once the real
-/// entry point runs, which happens *after* statically-imported DLLs (like this
-/// winmm proxy) initialise. Poll for a known signature so we don't scan
-/// still-encrypted code. Returns `true` once the code is decrypted.
-pub unsafe fn wait_until_ready(base: *const u8) -> bool {
-    use windows_sys::Win32::System::Threading::Sleep;
-    const TIMEOUT_MS: u32 = 60_000;
-    const STEP_MS: u32 = 250;
-    let mut waited = 0u32;
-    loop {
-        if pattern_scan(base, CURRENT_RESOLUTION_SIG).is_some() {
-            crate::log!("Game code decrypted after {} ms.", waited);
-            return true;
-        }
-        if waited >= TIMEOUT_MS {
-            crate::log!("WARNING: game code still not ready after {} ms; scanning anyway.", waited);
-            return false;
-        }
-        Sleep(STEP_MS);
-        waited += STEP_MS;
-    }
+/// Apply every Sekiro fix. Called after the code section has been decrypted.
+pub unsafe fn apply(base: *const u8) {
+    resolution(base);
+    aspect_ratio(base);
+    fov(base);
+    hud(base);
+    framerate(base);
 }
 
 // =====================================================================
 // Resolution / borderless
 // =====================================================================
-pub unsafe fn resolution(base: *const u8) {
-    match pattern_scan(base, CURRENT_RESOLUTION_SIG) {
+unsafe fn resolution(base: *const u8) {
+    match pattern_scan(base, READY_SIG) {
         Some(p) => install_mid("Current Resolution", base, p.add(0x2), h_current_resolution),
         None => crate::log!("Current Resolution: pattern scan failed."),
     }

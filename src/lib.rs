@@ -1,14 +1,15 @@
-//! FromFix — a pure-Rust ASI plugin for *Sekiro: Shadows Die Twice*.
-//! Rewrite of the original C++ fix (unlock framerate, FOV, borderless,
-//! ultrawide/narrower aspect-ratio + HUD support).
+//! FromFix — a pure-Rust winmm.dll proxy that fixes FromSoftware games.
+//! One DLL, multiple games: it detects the host executable and applies the
+//! matching fix set (Sekiro, Dark Souls III).
 
 #![allow(non_snake_case)]
 
 #[macro_use]
 mod logger;
 mod config;
-mod fixes;
+mod ds3;
 mod memory;
+mod sekiro;
 mod state;
 
 use core::ffi::c_void;
@@ -26,30 +27,59 @@ const DLL_PROCESS_ATTACH: u32 = 1;
 
 static THIS_MODULE: AtomicUsize = AtomicUsize::new(0);
 
-/// Return the directory (with trailing separator) that `module` was loaded from.
-unsafe fn module_dir(module: HMODULE) -> String {
+#[derive(Clone, Copy, PartialEq)]
+enum Game {
+    Sekiro,
+    DarkSouls3,
+    Unknown,
+}
+
+/// Full path of `module` (empty on failure).
+unsafe fn module_path(module: HMODULE) -> String {
     let mut buf = [0u16; 260];
     let n = GetModuleFileNameW(module, buf.as_mut_ptr(), buf.len() as u32) as usize;
-    let s = String::from_utf16_lossy(&buf[..n]);
-    match s.rfind('\\') {
-        Some(i) => s[..=i].to_string(),
-        None => s,
+    String::from_utf16_lossy(&buf[..n])
+}
+
+/// Directory (with trailing separator) of a module path string.
+fn dir_of(path: &str) -> String {
+    match path.rfind(['\\', '/']) {
+        Some(i) => path[..=i].to_string(),
+        None => String::new(),
     }
 }
 
-/// The actual worker: log, parse config, apply every fix.
+/// Lowercase file name of a path string.
+fn file_of(path: &str) -> String {
+    path.rsplit(['\\', '/']).next().unwrap_or("").to_ascii_lowercase()
+}
+
+/// The actual worker: detect the game, parse config, apply the right fixes.
 unsafe fn run() {
     let exe = GetModuleHandleW(core::ptr::null());
     let exe_base = exe as *const u8;
-    let exe_dir = module_dir(exe);
-    let dll_dir = module_dir(THIS_MODULE.load(Ordering::Relaxed) as HMODULE);
+    let exe_path = module_path(exe);
+    let exe_name = file_of(&exe_path);
+    let exe_dir = dir_of(&exe_path);
+    let dll_dir = dir_of(&module_path(THIS_MODULE.load(Ordering::Relaxed) as HMODULE));
 
     logger::init(&format!("{}FromFix.log", exe_dir));
     crate::log!("----------");
     crate::log!("FromFix v{} loaded.", VERSION);
+    crate::log!("Host executable: {}", exe_name);
     crate::log!("Module base: 0x{:x}", exe_base as usize);
     crate::log!("Module timestamp: {}", memory::module_timestamp(exe_base));
     crate::log!("----------");
+
+    let game = match exe_name.as_str() {
+        "sekiro.exe" => Game::Sekiro,
+        "darksoulsiii.exe" => Game::DarkSouls3,
+        _ => Game::Unknown,
+    };
+    if game == Game::Unknown {
+        crate::log!("Unsupported host executable '{}'; nothing to do.", exe_name);
+        return;
+    }
 
     let ini = format!("{}FromFix.ini", dll_dir);
     if !config::load(&ini) {
@@ -57,15 +87,22 @@ unsafe fn run() {
         return;
     }
 
-    // sekiro.exe is SteamStub-encrypted; wait until the real entry point has
-    // decrypted the code section before scanning for signatures.
-    fixes::wait_until_ready(exe_base);
-
-    fixes::resolution(exe_base);
-    fixes::aspect_ratio(exe_base);
-    fixes::fov(exe_base);
-    fixes::hud(exe_base);
-    fixes::framerate(exe_base);
+    // FromSoftware exes are SteamStub-encrypted; wait until the real entry point
+    // has decrypted .text before scanning for signatures.
+    match game {
+        Game::Sekiro => {
+            memory::wait_for_signature(exe_base, sekiro::READY_SIG, "Sekiro");
+            sekiro::apply(exe_base);
+        }
+        Game::DarkSouls3 => {
+            // Resolution is an unencrypted data reference — patch it ASAP, before
+            // waiting on code decryption, to beat the game's startup read.
+            ds3::patch_resolution(exe_base);
+            memory::wait_for_signature(exe_base, ds3::READY_SIG, "DS3");
+            ds3::apply(exe_base);
+        }
+        Game::Unknown => unreachable!(),
+    }
     crate::log!("Initialisation complete.");
 }
 
