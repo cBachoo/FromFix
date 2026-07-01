@@ -1,0 +1,4 @@
+# Statically link the MSVC CRT so the proxy DLL has no VC++ redist dependency
+# and drops straight into the game folder.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

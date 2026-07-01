@@ -1,0 +1,11 @@
+# Rust build artifacts
+/target
+/vendor/*/target
+
+# Editor / IDE
+**/.vs/
+**/.vscode/
+.history/
+*.vsix
+
+todo.md

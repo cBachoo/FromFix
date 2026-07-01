@@ -1,0 +1,62 @@
+name: Build
+
+# Manual-only trigger.
+on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: "Publish a GitHub release (tagged with the Cargo.toml version)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Read version from Cargo.toml
+        id: ver
+        run: |
+          $line = Get-Content Cargo.toml | Where-Object { $_ -match '^\s*version\s*=' } | Select-Object -First 1
+          $v = [regex]::Match($line, '"([^"]+)"').Groups[1].Value
+          if (-not $v) { throw "Could not read version from Cargo.toml" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "FromFix version: $v"
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Package
+        id: pkg
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          $zip = "FromFix_$v.zip"
+          Compress-Archive -Path target/release/winmm.dll, FromFix.ini -DestinationPath $zip -Force
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FromFix_${{ steps.ver.outputs.version }}
+          path: ${{ steps.pkg.outputs.zip }}
+
+      - name: Create release
+        if: ${{ inputs.create_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          gh release create "v$v" "${{ steps.pkg.outputs.zip }}" --title "v$v" --notes "FromFix v$v"
