@@ -18,8 +18,9 @@ applies the matching fixes — drop it in the game folder and it just works.
 ### Dark Souls III
 - Skip the startup logo/intro movies.
 - Unlock the framerate (debug frame limiter; see the note below).
-- Borderless fullscreen.
-- Ultrawide / native resolution (set it in `FromFix.ini`).
+- Borderless fullscreen (from Windowed mode), that persists across restarts.
+- Ultrawide / any resolution: adds your resolution to the in-game list and makes
+  it stick.
 
 > **DS3 framerate note:** Dark Souls III ties physics to framerate, so running
 > above 60 FPS can cause quirks (fall damage, item pickups). `TargetFPS` is
@@ -64,13 +65,19 @@ section for the game you're running is used.
 | `DS3 Skip Intro` | `Enabled` | `true` | Skip the startup logo movies. |
 | `DS3 Unlock Framerate` | `Enabled` | `false` | Unlock via the debug limiter. |
 | `DS3 Unlock Framerate` | `TargetFPS` | `60` | Desired FPS cap (`30`–`1000`). |
-| `DS3 Borderless` | `Enabled` | `false` | Borderless at desktop resolution. |
-| `DS3 Resolution` | `Width` / `Height` | `0` | Native/internal resolution (ultrawide, Steam Deck). `0` = off. |
+| `DS3 Borderless` | `Enabled` | `false` | Full-monitor borderless (run the game in **Windowed** mode). |
+| `DS3 Resolution` | `Width` / `Height` | `0` | Add this resolution to the in-game list & make it persist. `0` = off. |
 
-DS3 renders at a hardcoded internal resolution reference (1280x720). Setting
-`[DS3 Resolution] Width`/`Height` makes FromFix swap that reference in memory at
-startup so the game renders natively at your resolution / aspect — e.g.
-`Width = 3440`, `Height = 1440`.
+**Ultrawide / borderless on DS3, the easy way:** just set `[DS3 Borderless]
+Enabled = true` and launch in **Windowed** mode. FromFix auto-uses your monitor
+resolution, adds it to the in-game resolution list, writes it into the game's
+`GraphicsConfig.xml` so it persists, and turns the window into full-monitor
+borderless (instant alt-tab, no minimize, taskbar hidden).
+
+To force a specific resolution instead of your monitor's, set `[DS3 Resolution]
+Width`/`Height` (e.g. `3440`/`1440`). Under the hood this replaces DS3's
+`1920x1080` list entry — DS3's resolution list is a fixed table, so an entry is
+swapped rather than "unlocked".
 
 ## Verifying it works
 On launch, FromFix writes **`FromFix.log`** next to the game exe. It reports the
@@ -111,7 +118,6 @@ VC++ redist dependency.
   [DS3DebugFPS](https://github.com/0dm/DS3DebugFPS).
 - Dark Souls III No-Intro: **bladecoding** —
   [DarkSouls3RemoveIntroScreens](https://github.com/bladecoding/DarkSouls3RemoveIntroScreens).
-- Dark Souls III FOV patch: **Altimor**.
 
 ## Troubleshooting
 - **Game won't start / instantly closes:** ensure `winmm.dll` sits next to the

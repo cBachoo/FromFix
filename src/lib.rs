@@ -95,9 +95,16 @@ unsafe fn run() {
             sekiro::apply(exe_base);
         }
         Game::DarkSouls3 => {
-            // Resolution is an unencrypted data reference — patch it ASAP, before
-            // waiting on code decryption, to beat the game's startup read.
+            // Resolution list is an unencrypted data table — edit it ASAP, before
+            // the decryption wait, so the new resolution is present when the game
+            // reads the list at startup.
+            ds3::default_resolution_to_monitor();
+            ds3::force_windowed_config();
             ds3::patch_resolution(exe_base);
+            // Borderless is pure Win32 on the window; run it on its own thread so
+            // it applies as soon as the window appears, independent of the code
+            // decryption wait and without delaying the other fixes.
+            std::thread::spawn(|| unsafe { ds3::borderless() });
             memory::wait_for_signature(exe_base, ds3::READY_SIG, "DS3");
             ds3::apply(exe_base);
         }

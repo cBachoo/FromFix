@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "FromFix"
-version = "0.1.1"
+version = "0.2.4"
 dependencies = [
  "ilhook",
  "windows-sys 0.59.0",
